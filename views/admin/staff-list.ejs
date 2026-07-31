@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Staff - Admin Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+    </script>
+    <meta name="csrf-token" content="<%= csrfToken %>">
+</head>
+
+<body class="bg-slate-50 font-sans min-h-screen flex">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay"
+        class="fixed inset-0 bg-slate-900/50 z-20 hidden md:hidden backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    </div>
+
+    <!-- Sidebar (Reused from dashboard) -->
+    <aside id="adminSidebar"
+        class="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:static md:flex md:flex-col transition-transform duration-300 ease-in-out">
+        <div class="flex items-center justify-between h-16 px-6 border-b border-slate-800">
+            <span class="text-white font-bold text-lg">Admin Portal</span>
+            <button id="closeSidebar" class="md:hidden text-slate-400 hover:text-white">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="flex flex-col flex-1 overflow-y-auto py-4">
+            <nav class="space-y-1 px-2">
+                <a href="/admin/dashboard"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">Dashboard</a>
+                <a href="/admin/staff"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-lg transition-colors">Staff
+                    Management</a>
+                <a href="/admin/attendance"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">Attendance
+                    Logs</a>
+                <a href="/admin/settings"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">Settings</a>
+            </nav>
+        </div>
+        <div class="border-t border-slate-800 p-4"><a href="/admin/logout"
+                class="text-sm font-medium text-slate-400 hover:text-white">Sign Out</a></div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto w-full">
+        <!-- Header -->
+        <header
+            class="bg-white shadow-sm border-b border-slate-200 px-4 sm:px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <button id="openSidebar" class="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <h1 class="text-xl font-bold text-slate-800">Staff Management</h1>
+            </div>
+            <button onclick="openModal()"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors whitespace-nowrap">
+                + <span class="hidden xs:inline">Add</span> New Staff
+            </button>
+        </header>
+
+        <div class="p-8">
+            <!-- Search & Filters -->
+            <div class="mb-6 flex gap-4">
+                <input type="text" id="searchInput" placeholder="Search by name or email..."
+                    class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Name
+                                (Details)</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Department
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTableBody" class="divide-y divide-slate-200">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="staffModal"
+        class="fixed inset-0 bg-slate-900/50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl transform transition-all">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-slate-800" id="modalTitle">Add New Staff</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+            <form id="staffForm" class="p-6 space-y-4">
+                <input type="hidden" id="staffId">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                    <input type="text" id="staffName" required
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                    <input type="email" id="staffEmail" required
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Department</label>
+                    <select id="staffDept"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option>Computer Science</option>
+                        <option>Engineering</option>
+                        <option>Business Admin</option>
+                        <option>Mathematics</option>
+                        <option>Physics</option>
+                    </select>
+                </div>
+                <div id="passwordField">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Default Password</label>
+                    <input type="password" id="staffPassword"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <p class="text-xs text-slate-400 mt-1">Leave empty to keep existing (Edit Mode) or require for new.
+                    </p>
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()"
+                        class="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg text-sm font-medium">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Save
+                        Staff</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Staff Attendance Detail Modal -->
+    <div id="attendanceModal"
+        class="fixed inset-0 bg-slate-900/50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity z-50">
+        <div
+            class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl transform transition-all max-h-[90vh] overflow-hidden flex flex-col">
+            <div
+                class="px-6 py-4 border-b border-indigo-100 flex justify-between items-center bg-indigo-50 rounded-t-2xl">
+                <h3 class="text-lg font-semibold text-indigo-800" id="attendanceModalTitle">Staff Attendance History
+                </h3>
+                <button onclick="closeAttendanceModal()"
+                    class="text-indigo-400 hover:text-indigo-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <!-- Staff Info -->
+                <div class="mb-6 bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500 uppercase font-medium mb-1">Full Name</p>
+                            <p class="text-sm font-semibold text-slate-800" id="detailStaffName">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 uppercase font-medium mb-1">Department</p>
+                            <p class="text-sm font-semibold text-slate-800" id="detailStaffDept">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 uppercase font-medium mb-1">Staff ID</p>
+                            <p class="text-sm font-semibold text-slate-800" id="detailStaffId">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 uppercase font-medium mb-1">Email</p>
+                            <p class="text-sm font-semibold text-slate-800" id="detailStaffEmail">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Table -->
+                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Date
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                                        Check-In</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                                        Check-Out</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                                        Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTableBody" class="divide-y divide-slate-200 bg-white">
+                                <!-- Rows injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noAttendanceMessage" class="hidden p-8 text-center text-slate-500">
+                        <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        <p class="font-medium">No attendance records found</p>
+                        <p class="text-sm mt-1">This staff member has not checked in yet.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex justify-end">
+                <button onclick="closeAttendanceModal()"
+                    class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isEdit = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStaff();
+
+            // Sidebar Logic
+            const openSidebar = document.getElementById('openSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const sidebar = document.getElementById('adminSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (openSidebar && sidebar && overlay) {
+                openSidebar.addEventListener('click', () => {
+                    overlay.classList.remove('hidden');
+                    requestAnimationFrame(() => {
+                        overlay.classList.remove('opacity-0');
+                        sidebar.classList.remove('-translate-x-full');
+                    });
+                });
+
+                const hideSidebar = () => {
+                    overlay.classList.add('opacity-0');
+                    sidebar.classList.add('-translate-x-full');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                    }, 300);
+                };
+
+                if (closeSidebar) closeSidebar.addEventListener('click', hideSidebar);
+                overlay.addEventListener('click', hideSidebar);
+            }
+        });
+
+        async function fetchStaff() {
+            const res = await fetch('/admin/api/staff');
+            const staffList = await res.json();
+            const tbody = document.getElementById('staffTableBody');
+            tbody.innerHTML = '';
+
+            staffList.forEach(staff => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-indigo-50 transition-colors cursor-pointer';
+                tr.onclick = () => viewStaffAttendance(staff.staff_id);
+
+                const statusColor = staff.status === 'Active' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-200';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-slate-900">${staff.name}</div>
+                        <div class="text-xs text-slate-400">${staff.email}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${staff.department}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full border ${statusColor}">
+                            ${staff.status}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function viewStaffAttendance(staffId) {
+            try {
+                const res = await fetch(`/admin/api/staff/attendance?staff_id=${staffId}`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(data.error || 'Failed to fetch attendance data');
+                    return;
+                }
+
+                // Populate staff info
+                document.getElementById('detailStaffName').textContent = data.staff.name;
+                document.getElementById('detailStaffDept').textContent = data.staff.department;
+                document.getElementById('detailStaffId').textContent = data.staff.staff_id;
+                document.getElementById('detailStaffEmail').textContent = data.staff.email;
+
+                // Populate attendance table
+                const attendanceBody = document.getElementById('attendanceTableBody');
+                const noDataMessage = document.getElementById('noAttendanceMessage');
+                attendanceBody.innerHTML = '';
+
+                if (data.attendance.length === 0) {
+                    noDataMessage.classList.remove('hidden');
+                } else {
+                    noDataMessage.classList.add('hidden');
+
+                    data.attendance.forEach(record => {
+                        const tr = document.createElement('tr');
+
+                        // Format date
+                        const date = new Date(record.date);
+                        const formattedDate = date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                        });
+
+                        // Status badge styling
+                        let statusBadge = '';
+                        if (record.status === 'Present') {
+                            statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 border border-green-200">Punctual</span>';
+                        } else if (record.status === 'Late') {
+                            statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200">Late</span>';
+                        } else {
+                            statusBadge = '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200">Absent</span>';
+                        }
+
+                        tr.innerHTML = `
+                            <td class="px-4 py-3 text-sm text-slate-700">${formattedDate}</td>
+                            <td class="px-4 py-3 text-sm text-slate-700">${record.check_in_time || '-'}</td>
+                            <td class="px-4 py-3 text-sm text-slate-700">${record.check_out_time || '-'}</td>
+                            <td class="px-4 py-3">${statusBadge}</td>
+                        `;
+                        attendanceBody.appendChild(tr);
+                    });
+                }
+
+                // Show modal
+                document.getElementById('attendanceModal').classList.remove('hidden');
+            } catch (err) {
+                console.error('Error fetching attendance:', err);
+                alert('An error occurred while fetching attendance data');
+            }
+        }
+
+        function closeAttendanceModal() {
+            document.getElementById('attendanceModal').classList.add('hidden');
+        }
+
+        function openModal() {
+            isEdit = false;
+            document.getElementById('modalTitle').textContent = 'Add New Staff';
+            document.getElementById('staffForm').reset();
+            document.getElementById('staffModal').classList.remove('hidden');
+        }
+
+        function editStaff(staff) {
+            isEdit = true;
+            document.getElementById('modalTitle').textContent = 'Edit Staff';
+            document.getElementById('staffId').value = staff.staff_id;
+            document.getElementById('staffName').value = staff.name;
+            document.getElementById('staffEmail').value = staff.email;
+            document.getElementById('staffDept').value = staff.department;
+            document.getElementById('staffPassword').placeholder = '(Unchanged)';
+            document.getElementById('staffModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('staffModal').classList.add('hidden');
+        }
+
+        document.getElementById('staffForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('staffId').value;
+            const name = document.getElementById('staffName').value;
+            const email = document.getElementById('staffEmail').value;
+            const dept = document.getElementById('staffDept').value;
+            const pass = document.getElementById('staffPassword').value;
+
+            const url = isEdit ? '/admin/api/staff/update' : '/admin/api/staff/create';
+            const body = { name, email, department: dept, password: pass, staff_id: id, status: 'Active' };
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(body)
+            });
+
+            closeModal();
+            fetchStaff();
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#staffTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+
+</html>

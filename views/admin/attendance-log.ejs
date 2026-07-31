@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Logs - Admin Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+    </script>
+    <meta name="csrf-token" content="<%= csrfToken %>">
+</head>
+
+<body class="bg-slate-50 font-sans min-h-screen flex">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay"
+        class="fixed inset-0 bg-slate-900/50 z-20 hidden md:hidden backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="adminSidebar"
+        class="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-30 transform -translate-x-full md:translate-x-0 md:static md:flex md:flex-col transition-transform duration-300 ease-in-out">
+        <div class="flex items-center justify-between h-16 px-6 border-b border-slate-800">
+            <span class="text-white font-bold text-lg">Admin Portal</span>
+            <button id="closeSidebar" class="md:hidden text-slate-400 hover:text-white">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="flex flex-col flex-1 overflow-y-auto py-4">
+            <nav class="space-y-1 px-2">
+                <a href="/admin/dashboard"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">Dashboard</a>
+                <a href="/admin/staff"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">Staff
+                    Management</a>
+                <a href="/admin/attendance"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-lg transition-colors">Attendance
+                    Logs</a>
+                <a href="/admin/settings"
+                    class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">Settings</a>
+            </nav>
+        </div>
+        <div class="border-t border-slate-800 p-4"><a href="/admin/logout"
+                class="text-sm font-medium text-slate-400 hover:text-white">Sign Out</a></div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto w-full">
+        <header class="bg-white shadow-sm border-b border-slate-200 px-4 sm:px-8 py-4 sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <button id="openSidebar" class="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <h1 class="text-xl font-bold text-slate-800">Attendance Logs</h1>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- Filters -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Date</label>
+                    <input type="date" id="filterDate"
+                        class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Department</label>
+                    <select id="filterDept"
+                        class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-40">
+                        <option value="All">All Departments</option>
+                        <option>Computer Science</option>
+                        <option>Engineering</option>
+                        <option>Business Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                    <select id="filterStatus"
+                        class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-32">
+                        <option value="All">All Status</option>
+                        <option>Present</option>
+                        <option>Late</option>
+                        <option>Absent</option>
+                    </select>
+                </div>
+                <button onclick="fetchLogs()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+                    Filter Records
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Staff Name
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Department
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Check In /
+                                Out</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">IP Address
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody" class="divide-y divide-slate-200">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Default query
+            fetchLogs();
+
+            // Sidebar Logic
+            const openSidebar = document.getElementById('openSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const sidebar = document.getElementById('adminSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (openSidebar && sidebar && overlay) {
+                openSidebar.addEventListener('click', () => {
+                    overlay.classList.remove('hidden');
+                    requestAnimationFrame(() => {
+                        overlay.classList.remove('opacity-0');
+                        sidebar.classList.remove('-translate-x-full');
+                    });
+                });
+
+                const hideSidebar = () => {
+                    overlay.classList.add('opacity-0');
+                    sidebar.classList.add('-translate-x-full');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                    }, 300);
+                };
+
+                if (closeSidebar) closeSidebar.addEventListener('click', hideSidebar);
+                overlay.addEventListener('click', hideSidebar);
+            }
+        });
+
+        async function fetchLogs() {
+            const date = document.getElementById('filterDate').value;
+            const dept = document.getElementById('filterDept').value;
+            const status = document.getElementById('filterStatus').value;
+
+            const params = new URLSearchParams();
+            if (date) params.append('date', date);
+            if (dept && dept !== 'All') params.append('department', dept);
+            if (status && status !== 'All') params.append('status', status);
+
+            const res = await fetch(`/admin/api/attendance?${params.toString()}`);
+            const logs = await res.json();
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = '';
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500">No records found matching criteria.</td></tr>';
+                return;
+            }
+
+            logs.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+
+                const dateStr = new Date(log.date).toLocaleDateString();
+                const checkIn = log.check_in_time ? log.check_in_time.substring(0, 5) : '--:--';
+                const checkOut = log.check_out_time ? log.check_out_time.substring(0, 5) : '--:--';
+
+                let statusColor = 'bg-slate-100 text-slate-800';
+                if (log.status === 'Present') statusColor = 'bg-green-100 text-green-800';
+                if (log.status === 'Late') statusColor = 'bg-amber-100 text-amber-800';
+                if (log.status === 'Absent') statusColor = 'bg-red-100 text-red-800';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${dateStr}</td>
+                    <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">${log.staff_name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${log.department}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                        <span class="font-medium">${checkIn}</span> <span class="text-slate-400 mx-1">→</span> <span class="font-medium">${checkOut}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">${log.status}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-400 font-mono">${log.ip_address || 'N/A'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+
+</html>
