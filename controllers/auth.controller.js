@@ -8,14 +8,14 @@ exports.getLoginPage = (req, res) => {
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
-    console.log(`[LOGIN ATTEMPT] Email: ${email}, Password: ${password}`);
+    // console.log(`[LOGIN ATTEMPT] Email: ${email}, Password: ${password}`);
 
     try {
         const staff = await Staff.findByEmail(email);
         // console.log('[LOGIN DEBUG] Staff found:', staff);
 
         if (!staff) {
-            console.log('[LOGIN FAILED] User not found');
+            // console.log('[LOGIN FAILED] User not found');
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
