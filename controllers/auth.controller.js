@@ -12,7 +12,7 @@ exports.login = async (req, res) => {
 
     try {
         const staff = await Staff.findByEmail(email);
-        console.log('[LOGIN DEBUG] Staff found:', staff);
+        // console.log('[LOGIN DEBUG] Staff found:', staff);
 
         if (!staff) {
             console.log('[LOGIN FAILED] User not found');
@@ -20,7 +20,7 @@ exports.login = async (req, res) => {
         }
 
         const isMatch = await bcrypt.compare(password, staff.password);
-        console.log(`[LOGIN DEBUG] Password match result: ${isMatch}`);
+        // console.log(`[LOGIN DEBUG] Password match result: ${isMatch}`);
 
         if (!isMatch) {
             console.log('[LOGIN FAILED] Password mismatch');
@@ -34,7 +34,7 @@ exports.login = async (req, res) => {
         req.session.staffId = staff.staff_id;
         req.session.staffName = staff.name;
 
-        console.log('[LOGIN SUCCESS] Session created');
+        // console.log('[LOGIN SUCCESS] Session created');
         res.json({ success: true, redirect: '/staff/dashboard' });
     } catch (err) {
         console.error(err);
@@ -43,8 +43,8 @@ exports.login = async (req, res) => {
 };
 
 exports.logout = (req, res) => {
-    req.session.destroy(err => {
-        if (err) return res.status(500).json({ error: 'Could not log out' });
-        res.redirect('/auth/login');
-    });
+    delete req.session.staffId;
+    delete req.session.staffName;
+    req.session.success_msg = 'You have logged out successfully.';
+    res.redirect('/auth/login');
 };

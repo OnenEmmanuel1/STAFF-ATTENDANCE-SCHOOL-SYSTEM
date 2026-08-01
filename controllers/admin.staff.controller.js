@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 // Helper to get all staff
 exports.getAllStaff = async (req, res) => {
     try {
-        const [rows] = await db.execute('SELECT staff_id, name, email, department, status, created_at FROM staff ORDER BY created_at DESC');
+        const [rows] = await db.execute('SELECT staff_id, name, email, department, status, profile_pic, created_at FROM staff ORDER BY created_at DESC');
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -15,6 +15,8 @@ exports.getAllStaff = async (req, res) => {
 // Create Staff
 exports.createStaff = async (req, res) => {
     const { name, email, password, department } = req.body;
+    const profile_pic = req.file ? `/uploads/profile_pics/${req.file.filename}` : null;
+
     try {
         // Check if email exists
         const [existing] = await db.execute('SELECT email FROM staff WHERE email = ?', [email]);
@@ -22,8 +24,8 @@ exports.createStaff = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         await db.execute(
-            'INSERT INTO staff (name, email, password, department, status) VALUES (?, ?, ?, ?, "Active")',
-            [name, email, hashedPassword, department]
+            'INSERT INTO staff (name, email, password, department, status, profile_pic) VALUES (?, ?, ?, ?, "Active", ?)',
+            [name, email, hashedPassword, department, profile_pic]
         );
         res.json({ success: true, message: 'Staff created successfully' });
     } catch (err) {
@@ -35,11 +37,20 @@ exports.createStaff = async (req, res) => {
 // Update Staff
 exports.updateStaff = async (req, res) => {
     const { staff_id, name, email, department, status } = req.body;
+    const profile_pic = req.file ? `/uploads/profile_pics/${req.file.filename}` : null;
+
     try {
-        await db.execute(
-            'UPDATE staff SET name = ?, email = ?, department = ?, status = ? WHERE staff_id = ?',
-            [name, email, department, status, staff_id]
-        );
+        if (profile_pic) {
+            await db.execute(
+                'UPDATE staff SET name = ?, email = ?, department = ?, status = ?, profile_pic = ? WHERE staff_id = ?',
+                [name, email, department, status, profile_pic, staff_id]
+            );
+        } else {
+            await db.execute(
+                'UPDATE staff SET name = ?, email = ?, department = ?, status = ? WHERE staff_id = ?',
+                [name, email, department, status, staff_id]
+            );
+        }
         res.json({ success: true, message: 'Staff updated successfully' });
     } catch (err) {
         console.error(err);
@@ -74,7 +85,7 @@ exports.getStaffAttendance = async (req, res) => {
 
         // Get staff details
         const [staffRows] = await db.execute(
-            'SELECT staff_id, name, email, department FROM staff WHERE staff_id = ?',
+            'SELECT staff_id, name, email, department, profile_pic FROM staff WHERE staff_id = ?',
             [staff_id]
         );
 
