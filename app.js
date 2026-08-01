@@ -53,9 +53,15 @@ app.use((req, res, next) => {
     csrfProtection(req, res, next);
 });
 
-// Provide CSRF token to all EJS templates
+// Provide CSRF token & flash messages to all EJS templates
 app.use((req, res, next) => {
     res.locals.csrfToken = req.csrfToken();
+    res.locals.success_msg = req.session.success_msg || null;
+    res.locals.error_msg = req.session.error_msg || null;
+    res.locals.info_msg = req.session.info_msg || null;
+    delete req.session.success_msg;
+    delete req.session.error_msg;
+    delete req.session.info_msg;
     next();
 });
 
@@ -79,5 +85,5 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running now on http://localhost:${PORT}`);
 });

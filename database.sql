@@ -82,12 +82,6 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 INSERT IGNORE INTO staff (name, email, password, department, status) VALUES 
 ('John Doe', 'john@example.com', '$2b$10$4RgLxBOf9j.RLX9txhEjb.nFpKMFMSgAW9gmi2olXp1k8tqhAWX9m', 'Computer Science', 'Active');
 
--- Seed Admin (Password: password123)
--- Hash generated via helper script later, but here is a pre-calculated one:
--- $2a$10$y.tKqO5.p0.m5.j1.l8.k.2.t5.r9.n8.v7.l1.p5.t6.m1 (Example placeholder, needs real hash)
--- Let's use the same hash as 'password123' for now to ensure access if we don't run the update script, 
--- BUT we must create a setup script to insert the correct hash for 'admin123' properly.
--- Unique hash for 'admin123': $2b$10$X8f1.z5.k8.p4.j2.l9.m3.t6.r0.n7.v4.l2.p6.t7.m2 (Mock)
--- We will use the 'password123' hash for admin temporarily or generate a fresh one in the setup script.
+-- Seed Admin (Password: admin123)
 INSERT IGNORE INTO admins (name, email, password) VALUES 
-('System Admin', 'admin@school.edu', '$2b$10$4RgLxBOf9j.RLX9txhEjb.nFpKMFMSgAW9gmi2olXp1k8tqhAWX9m');
+('System Admin', 'admin@school.edu', '$2b$10$SUOU7cZRga3MFWXxHtdQD./M3S4Fgvd5iqt4exRr4UnKiOyW7Oiue');

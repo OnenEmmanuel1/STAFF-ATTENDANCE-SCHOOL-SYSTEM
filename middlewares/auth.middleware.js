@@ -2,6 +2,7 @@ exports.isAuthenticated = (req, res, next) => {
     if (req.session.staffId) {
         return next();
     }
+    req.session.info_msg = 'Please log in to access your staff portal.';
     res.redirect('/auth/login');
 };
 

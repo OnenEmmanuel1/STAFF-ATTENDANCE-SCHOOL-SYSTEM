@@ -34,12 +34,14 @@ router.get('/staff', isAdminAuthenticated, (req, res) => {
     res.render('admin/staff-list');
 });
 
+const upload = require('../middlewares/upload.middleware');
+
 // APIs
 const adminStaffController = require('../controllers/admin.staff.controller');
 router.get('/api/staff', isAdminAuthenticated, adminStaffController.getAllStaff);
 router.get('/api/staff/attendance', isAdminAuthenticated, adminStaffController.getStaffAttendance);
-router.post('/api/staff/create', isAdminAuthenticated, adminStaffController.createStaff);
-router.post('/api/staff/update', isAdminAuthenticated, adminStaffController.updateStaff);
+router.post('/api/staff/create', isAdminAuthenticated, upload.single('profile_pic'), adminStaffController.createStaff);
+router.post('/api/staff/update', isAdminAuthenticated, upload.single('profile_pic'), adminStaffController.updateStaff);
 router.post('/api/staff/toggle', isAdminAuthenticated, adminStaffController.toggleStatus);
 
 // Attendance & Settings (Previous failed edit chunks are added here too)

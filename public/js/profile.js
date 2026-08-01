@@ -121,9 +121,16 @@ function setupAvatarUpload() {
                     statusText.className = 'text-xs text-green-600 font-medium';
                     setTimeout(() => statusText.classList.add('hidden'), 3000);
                 }
+                if (typeof showToast === 'function') {
+                    showToast('Profile picture updated successfully!', 'success');
+                }
                 updateAvatarUI(result.profile_pic);
             } else {
-                alert(result.error || 'Failed to upload image.');
+                if (typeof showToast === 'function') {
+                    showToast(result.error || 'Failed to upload image.', 'error');
+                } else {
+                    alert(result.error || 'Failed to upload image.');
+                }
                 if (statusText) statusText.classList.add('hidden');
             }
         } catch (err) {
